@@ -272,102 +272,6 @@ router.post('/logout', async (req, res) => {
 // Get current user
 router.get('/me', async (req, res) => {
   try {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-
-    if (!token) {
-      return res.status(401).json({
-        success: false,
-        error: 'Token required'
-      });
-    }
-
-    const jwt = require('jsonwebtoken');
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-    
-    const user = await User.findById(decoded.userId);
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        error: 'User not found'
-      });
-    }
-
-    res.json({
-      success: true,
-      data: {
-        user: user.toJSON()
-      }
-    });
-
-  } catch (error) {
-    console.error('Get user error:', error);
-    res.status(401).json({
-      success: false,
-      error: 'Invalid token'
-    });
-  }
-});
-
-// Update profile
-router.put('/profile', [
-  body('firstName').optional().trim().notEmpty(),
-  body('lastName').optional().trim().notEmpty(),
-  body('preferences.theme').optional().isIn(['light', 'dark', 'auto']),
-  body('preferences.language').optional().isLength({ min: 2, max: 5 })
-], async (req, res) => {
-  try {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-
-    if (!token) {
-      return res.status(401).json({
-        success: false,
-        error: 'Token required'
-      });
-    }
-
-    const jwt = require('jsonwebtoken');
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-    
-    const user = await User.findById(decoded.userId);
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        error: 'User not found'
-      });
-    }
-
-    const { firstName, lastName, preferences } = req.body;
-
-    if (firstName) user.firstName = firstName;
-    if (lastName) user.lastName = lastName;
-    if (preferences) {
-      user.preferences = { ...user.preferences, ...preferences };
-    }
-
-    await user.save();
-
-    res.json({
-      success: true,
-      message: 'Profile updated successfully',
-      data: {
-        user: user.toJSON()
-      }
-    });
-
-  } catch (error) {
-    console.error('Update profile error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Profile update failed'
-    });
-  }
-});
-
-// Get current user
-router.get('/me', async (req, res) => {
-  try {
     // In demo mode, return demo user info
     const user = {
       _id: 'demo_user_123',
@@ -399,6 +303,45 @@ router.get('/me', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to get user information'
+    });
+  }
+});
+
+// Update profile
+router.put('/profile', [
+  body('firstName').optional().trim().notEmpty(),
+  body('lastName').optional().trim().notEmpty(),
+  body('preferences.theme').optional().isIn(['light', 'dark', 'auto']),
+  body('preferences.language').optional().isLength({ min: 2, max: 5 })
+], async (req, res) => {
+  try {
+    const { firstName, lastName, preferences } = req.body;
+
+    // In demo mode, just return success
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      data: {
+        user: {
+          id: 'demo_user_123',
+          email: 'demo@pythagora.ai',
+          firstName: firstName || 'Demo',
+          lastName: lastName || 'User',
+          fullName: `${firstName || 'Demo'} ${lastName || 'User'}`,
+          subscription: {
+            plan: 'Pro',
+            tokens: 10000000
+          },
+          preferences: preferences || {}
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Profile update failed'
     });
   }
 });
