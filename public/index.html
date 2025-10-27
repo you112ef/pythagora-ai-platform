@@ -521,5 +521,36 @@
     <script src="/js/ai-providers.js"></script>
     <script src="/js/projects.js"></script>
     <script src="/js/collaboration.js"></script>
+    
+    <!-- Initialize application -->
+    <script>
+        // Initialize the application when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize all managers
+            if (window.app) {
+                window.app.init();
+            }
+            
+            // Initialize AI Studio
+            if (window.aiStudio) {
+                window.aiStudio.init();
+            }
+            
+            // Initialize AI Providers Manager
+            if (window.aiProvidersManager) {
+                window.aiProvidersManager.init();
+            }
+            
+            // Initialize Projects Manager
+            if (window.projectsManager) {
+                window.projectsManager.init();
+            }
+            
+            // Initialize Collaboration Manager
+            if (window.collaborationManager) {
+                window.collaborationManager.init();
+            }
+        });
+    </script>
 </body>
 </html>
