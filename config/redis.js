@@ -24,15 +24,15 @@ const initializeRedis = async () => {
       url: redisURL,
       retry_strategy: (options) => {
         if (options.error && options.error.code === 'ECONNREFUSED') {
-          logger.error('Redis server connection refused');
-          return new Error('Redis server connection refused');
+          logger.warn('Redis server connection refused - continuing without Redis');
+          return undefined; // Stop retrying
         }
         if (options.total_retry_time > 1000 * 60 * 60) {
-          logger.error('Redis retry time exhausted');
-          return new Error('Retry time exhausted');
+          logger.warn('Redis retry time exhausted - continuing without Redis');
+          return undefined;
         }
-        if (options.attempt > 10) {
-          logger.error('Redis max retry attempts reached');
+        if (options.attempt > 3) {
+          logger.warn('Redis max retry attempts reached - continuing without Redis');
           return undefined;
         }
         return Math.min(options.attempt * 100, 3000);
@@ -44,7 +44,7 @@ const initializeRedis = async () => {
     });
 
     redisClient.on('error', (err) => {
-      logger.error('Redis client error:', err);
+      logger.warn('Redis client error:', err.message);
     });
 
     redisClient.on('end', () => {
@@ -54,14 +54,23 @@ const initializeRedis = async () => {
     await redisClient.connect();
     
   } catch (error) {
-    logger.error('Redis connection failed:', error);
-    // Don't exit process for Redis failures, just log
+    logger.warn('Redis connection failed - continuing without Redis:', error.message);
+    redisClient = null; // Set to null so we can check if Redis is available
   }
 };
 
 const getRedisClient = () => {
   if (!redisClient) {
-    throw new Error('Redis client not initialized');
+    logger.warn('Redis client not available - returning mock client');
+    return {
+      get: async () => null,
+      set: async () => 'OK',
+      del: async () => 1,
+      exists: async () => 0,
+      expire: async () => 1,
+      connect: async () => {},
+      disconnect: async () => {}
+    };
   }
   return redisClient;
 };

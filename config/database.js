@@ -42,7 +42,12 @@ const connectDB = async () => {
 
   } catch (error) {
     logger.error('Database connection failed:', error);
-    process.exit(1);
+    // Don't exit process in development, just log the error
+    if (process.env.NODE_ENV === 'production') {
+      process.exit(1);
+    } else {
+      logger.warn('Continuing without database connection in development mode');
+    }
   }
 };
 
