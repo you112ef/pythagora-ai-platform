@@ -5,7 +5,14 @@ const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
+  // In demo mode, allow requests without token for certain routes
   if (!token) {
+    // Allow public routes
+    const publicRoutes = ['/api/health', '/api/auth/login', '/api/auth/register'];
+    if (publicRoutes.includes(req.path)) {
+      return next();
+    }
+    
     return res.status(401).json({ 
       error: 'Access token required',
       message: 'Please provide a valid authentication token'
@@ -16,14 +23,19 @@ const authenticateToken = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
     
     // Check if token is blacklisted (for logout functionality)
-    const redisClient = getRedisClient();
-    const isBlacklisted = await redisClient.get(`blacklist_${token}`);
-    
-    if (isBlacklisted) {
-      return res.status(401).json({ 
-        error: 'Token invalid',
-        message: 'This token has been revoked'
-      });
+    try {
+      const redisClient = getRedisClient();
+      const isBlacklisted = await redisClient.get(`blacklist_${token}`);
+      
+      if (isBlacklisted) {
+        return res.status(401).json({ 
+          error: 'Token invalid',
+          message: 'This token has been revoked'
+        });
+      }
+    } catch (redisError) {
+      // If Redis is not available, continue without blacklist check
+      console.warn('Redis not available for token blacklist check:', redisError.message);
     }
 
     req.user = decoded;

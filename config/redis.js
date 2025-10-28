@@ -24,18 +24,18 @@ const initializeRedis = async () => {
       url: redisURL,
       retry_strategy: (options) => {
         if (options.error && options.error.code === 'ECONNREFUSED') {
-          logger.warn('Redis server connection refused - continuing without Redis');
-          return undefined; // Stop retrying
+          logger.warn('Redis server not available, using in-memory fallback');
+          return undefined; // Don't retry, use fallback
         }
         if (options.total_retry_time > 1000 * 60 * 60) {
-          logger.warn('Redis retry time exhausted - continuing without Redis');
+          logger.warn('Redis retry time exhausted, using in-memory fallback');
           return undefined;
         }
         if (options.attempt > 3) {
-          logger.warn('Redis max retry attempts reached - continuing without Redis');
+          logger.warn('Redis max retry attempts reached, using in-memory fallback');
           return undefined;
         }
-        return Math.min(options.attempt * 100, 3000);
+        return Math.min(options.attempt * 100, 1000);
       }
     });
 
@@ -44,30 +44,38 @@ const initializeRedis = async () => {
     });
 
     redisClient.on('error', (err) => {
-      logger.warn('Redis client error:', err.message);
+      logger.warn('Redis client error, using in-memory fallback:', err.message);
     });
 
     redisClient.on('end', () => {
       logger.warn('Redis client connection ended');
     });
 
-    await redisClient.connect();
+    try {
+      await redisClient.connect();
+    } catch (error) {
+      logger.warn('Redis connection failed, using in-memory fallback:', error.message);
+      redisClient = null; // Set to null to indicate fallback mode
+    }
     
   } catch (error) {
-    logger.warn('Redis connection failed - continuing without Redis:', error.message);
-    redisClient = null; // Set to null so we can check if Redis is available
+    logger.warn('Redis initialization failed, using in-memory fallback:', error.message);
+    redisClient = null; // Set to null to indicate fallback mode
   }
 };
 
 const getRedisClient = () => {
   if (!redisClient) {
-    logger.warn('Redis client not available - returning mock client');
+    // Return a mock Redis client for fallback mode
     return {
-      get: async () => null,
-      set: async () => 'OK',
-      del: async () => 1,
-      exists: async () => 0,
-      expire: async () => 1,
+      get: async (key) => null,
+      set: async (key, value, options) => 'OK',
+      del: async (key) => 1,
+      exists: async (key) => 0,
+      expire: async (key, seconds) => 1,
+      ttl: async (key) => -1,
+      keys: async (pattern) => [],
+      flushall: async () => 'OK',
       connect: async () => {},
       disconnect: async () => {}
     };

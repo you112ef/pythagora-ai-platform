@@ -17,6 +17,7 @@ const deploymentRoutes = require('./routes/deployment');
 const collaborationRoutes = require('./routes/collaboration');
 const databaseRoutes = require('./routes/database');
 const apiRoutes = require('./routes/api');
+const apiRoutesDoc = require('./routes/api-routes');
 const testingRoutes = require('./routes/testing');
 const monitoringRoutes = require('./routes/monitoring');
 
@@ -88,6 +89,7 @@ app.use('/api/deployment', authenticateToken, deploymentRoutes);
 app.use('/api/collaboration', authenticateToken, collaborationRoutes);
 app.use('/api/database', authenticateToken, databaseRoutes);
 app.use('/api/api-management', authenticateToken, apiRoutes);
+app.use('/api', apiRoutesDoc); // API documentation and health endpoints
 app.use('/api/testing', authenticateToken, testingRoutes);
 app.use('/api/monitoring', authenticateToken, monitoringRoutes);
 
@@ -115,9 +117,27 @@ app.use(errorHandler);
 
 // 404 handler
 app.use('*', (req, res) => {
+  const availableRoutes = [
+    'GET /api/health',
+    'POST /api/auth/login',
+    'POST /api/auth/register',
+    'GET /api/auth/me',
+    'POST /api/auth/logout',
+    'GET /api/projects',
+    'POST /api/projects',
+    'GET /api/ai/generate-code',
+    'POST /api/ai/review-code',
+    'GET /api/ai-providers',
+    'GET /api/agents',
+    'POST /api/deployment/:projectId/deploy'
+  ];
+
   res.status(404).json({
+    success: false,
     error: 'Route not found',
-    message: 'The requested endpoint does not exist'
+    message: `The requested endpoint ${req.method} ${req.originalUrl} does not exist`,
+    availableRoutes: availableRoutes,
+    timestamp: new Date().toISOString()
   });
 });
 

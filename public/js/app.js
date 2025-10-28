@@ -70,8 +70,15 @@ class PythagoraApp {
 
     async initAuth() {
         const token = localStorage.getItem('pythagora-token');
-        if (token) {
+        const userData = localStorage.getItem('pythagora-user');
+        
+        if (token && userData) {
             try {
+                // Use cached user data for faster loading
+                this.currentUser = JSON.parse(userData);
+                this.updateUserUI();
+                
+                // Verify token in background
                 const response = await fetch('/api/auth/me', {
                     headers: {
                         'Authorization': `Bearer ${token}`
@@ -81,14 +88,17 @@ class PythagoraApp {
                 if (response.ok) {
                     const data = await response.json();
                     this.currentUser = data.data.user;
+                    localStorage.setItem('pythagora-user', JSON.stringify(data.data.user));
                     this.updateUserUI();
                 } else {
                     localStorage.removeItem('pythagora-token');
+                    localStorage.removeItem('pythagora-user');
                     this.redirectToLogin();
                 }
             } catch (error) {
                 console.error('Auth check failed:', error);
                 localStorage.removeItem('pythagora-token');
+                localStorage.removeItem('pythagora-user');
                 this.redirectToLogin();
             }
         } else {
@@ -581,6 +591,7 @@ class PythagoraApp {
             console.error('Logout error:', error);
         } finally {
             localStorage.removeItem('pythagora-token');
+            localStorage.removeItem('pythagora-user');
             this.redirectToLogin();
         }
     }
