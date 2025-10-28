@@ -25,5 +25,9 @@
       "maxDuration": 30
     }
   },
-  "regions": ["iad1"]
+  "regions": ["iad1"],
+  "github": {
+    "enabled": true,
+    "autoAlias": true
+  }
 }
